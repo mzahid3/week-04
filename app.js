@@ -1,7 +1,6 @@
 const cookieParser = require('cookie-parser');
 const express = require('express');
 const io = require('socket.io')();
-
 const logger = require('morgan');
 const path = require('path');
 
@@ -19,11 +18,22 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
-const namespace = io.of(/^\/[0-9]{6}$/);
-namespace.on('connection', function(socket){
+const namespaces = io.of(/^\/[0-9]{6}$/);
+
+namespaces.on('connection', function(socket) {
   const namespace = socket.nsp;
+
   socket.broadcast.emit('connected peer');
-  
+
+  // listen for signals
+  socket.on('signal', function(signal) {
+    socket.broadcast.emit('signal', signal);
+  })
+  // listen for disconnects
+  socket.on('disconnect', function() {
+    namespace.emit('disconnected peer');
+  })
+
 });
 
 module.exports = { app, io };
